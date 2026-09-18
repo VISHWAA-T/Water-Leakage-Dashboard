@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -6,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import apiRouter from './routes/api.js';
 import { iotSimulator } from './services/iotSimulator.js';
+import { connectDB } from './config/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,9 +51,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Pass socket.io instance to IoT simulator
-iotSimulator.init(io);
-
 // Serve static frontend build files if available
 const clientDistPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientDistPath));
@@ -69,8 +68,17 @@ app.get('*', (req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`=================================================`);
-  console.log(`🌊 AquaGuard AI Backend running on http://localhost:${PORT}`);
-  console.log(`=================================================`);
-});
+// Connect to Database and start Server
+const startServer = async () => {
+  const isDbConnected = await connectDB();
+  await iotSimulator.init(io, isDbConnected);
+
+  server.listen(PORT, () => {
+    console.log(`=================================================`);
+    console.log(`🌊 AquaGuard AI Backend running on http://localhost:${PORT}`);
+    console.log(`=================================================`);
+  });
+};
+
+startServer();
+

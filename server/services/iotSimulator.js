@@ -1,9 +1,15 @@
 // IoT Telemetry & AI Leak Detection Simulator for AquaGuard AI
 
+import { Sensor } from '../models/Sensor.js';
+import { TelemetryLog } from '../models/TelemetryLog.js';
+import { Alert } from '../models/Alert.js';
+
 class IoTSimulator {
   constructor() {
     this.io = null;
     this.intervalId = null;
+    this.isDbConnected = false;
+
 
     // System summary state
     this.systemState = {
@@ -116,8 +122,13 @@ class IoTSimulator {
     return history;
   }
 
-  init(io) {
+  async init(io, isDbConnected = false) {
     this.io = io;
+    this.isDbConnected = isDbConnected;
+
+    if (this.isDbConnected) {
+      await this.syncWithDatabase();
+    }
 
     // Start background simulation timer updating every 2 seconds
     this.intervalId = setInterval(() => {
@@ -127,7 +138,61 @@ class IoTSimulator {
     console.log("🌊 IoT Telemetry & AI Leak Detection Simulator running...");
   }
 
-  tick() {
+  async syncWithDatabase() {
+    try {
+      // Seed sensors if collection is empty
+      const sensorCount = await Sensor.countDocuments();
+      if (sensorCount === 0) {
+        await Sensor.insertMany(this.sensors);
+        console.log(`🌱 Seeded ${this.sensors.length} sensors into MongoDB.`);
+      } else {
+        const dbSensors = await Sensor.find().lean();
+        if (dbSensors.length > 0) {
+          this.sensors = dbSensors.map(s => ({
+            id: s.id,
+            name: s.name,
+            location: s.location,
+            flowRate: s.flowRate,
+            pressure: s.pressure,
+            status: s.status,
+            lastUpdate: s.lastUpdate || 'Just now',
+            minNormal: s.minNormal,
+            maxNormal: s.maxNormal
+          }));
+        }
+      }
+
+      // Seed alerts if collection is empty
+      const alertCount = await Alert.countDocuments();
+      if (alertCount === 0) {
+        await Alert.insertMany(this.alerts);
+        console.log(`🌱 Seeded ${this.alerts.length} initial alerts into MongoDB.`);
+      } else {
+        const dbAlerts = await Alert.find().sort({ createdAt: -1 }).lean();
+        if (dbAlerts.length > 0) {
+          this.alerts = dbAlerts.map(a => ({
+            id: a.id,
+            title: a.title,
+            location: a.location,
+            affectedSensor: a.affectedSensor,
+            recommendedValve: a.recommendedValve,
+            severity: a.severity,
+            probability: a.probability,
+            anomalyScore: a.anomalyScore,
+            estFlowLoss: a.estFlowLoss,
+            status: a.status,
+            timestamp: new Date(a.timestamp).toISOString(),
+            details: a.details
+          }));
+          this.systemState.activeLeaksCount = this.alerts.filter(a => a.status === 'ACTIVE').length;
+        }
+      }
+    } catch (err) {
+      console.error('⚠️ DB Sync Error:', err.message);
+    }
+  }
+
+  async tick() {
     // 1. Slightly fluctuate main flow rate
     const noise = (Math.random() - 0.48) * 1.5;
     this.systemState.totalFlowRate = Math.max(80, parseFloat((this.systemState.totalFlowRate + noise).toFixed(1)));
@@ -165,6 +230,18 @@ class IoTSimulator {
     this.flowHistory.push(newPoint);
     if (this.flowHistory.length > 40) {
       this.flowHistory.shift();
+    }
+
+    // Persist log entry asynchronously to MongoDB if connected
+    if (this.isDbConnected) {
+      TelemetryLog.create({
+        timeLabel,
+        timestamp: now,
+        totalFlowRate: newPoint.totalFlow,
+        leakLossRate: loss,
+        reservoirLevel: this.systemState.reservoirLevelPercent,
+        activeLeaks: this.systemState.activeLeaksCount
+      }).catch(err => console.error('MongoDB TelemetryLog save error:', err.message));
     }
 
     // Broadcast live telemetry packet over WebSockets
@@ -240,6 +317,15 @@ class IoTSimulator {
     if (s) {
       s.status = 'Leakage';
       s.pressure = 1.2;
+
+      if (this.isDbConnected) {
+        Sensor.updateOne({ id: 'SEN-004' }, { status: 'Leakage', pressure: 1.2 })
+          .catch(err => console.error('MongoDB Sensor update error:', err.message));
+      }
+    }
+
+    if (this.isDbConnected) {
+      Alert.create(newAlert).catch(err => console.error('MongoDB Alert create error:', err.message));
     }
 
     if (this.io) {
@@ -265,7 +351,16 @@ class IoTSimulator {
         if (s) {
           s.status = 'Normal';
           s.pressure = 4.2;
+          if (this.isDbConnected) {
+            Sensor.updateOne({ id: 'SEN-004' }, { status: 'Normal', pressure: 4.2 })
+              .catch(err => console.error('MongoDB Sensor update error:', err.message));
+          }
         }
+      }
+
+      if (this.isDbConnected) {
+        Alert.updateOne({ id: alertId }, { status: 'RESOLVED' })
+          .catch(err => console.error('MongoDB Alert update error:', err.message));
       }
 
       if (this.io) {
@@ -278,3 +373,4 @@ class IoTSimulator {
 }
 
 export const iotSimulator = new IoTSimulator();
+
