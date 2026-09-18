@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #070b14;
+    color: #e2e8f0;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Water Flow Animation Utilities */
+@keyframes flowDash {
+  0% {
+    stroke-dashoffset: 40;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.8));
+  }
+  50% {
+    opacity: 0.4;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.3));
+  }
+}
+
+@keyframes cyanWaterGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.8));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(14, 165, 233, 1));
+  }
+}
+
+.animate-flow-fast {
+  animation: flowDash 0.8s linear infinite;
+}
+
+.animate-flow-normal {
+  animation: flowDash 1.5s linear infinite;
+}
+
+.animate-flow-slow {
+  animation: flowDash 3s linear infinite;
+}
+
+.animate-pulse-red {
+  animation: pulseGlow 1.2s ease-in-out infinite;
+}
+
+.glow-cyan {
+  filter: drop-shadow(0 0 10px rgba(6, 182, 212, 0.6));
+}
+
+.glow-green {
+  filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.6));
+}
+
+.glow-red {
+  filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.8));
+}
+
+/* Glassmorphism Styling */
+.glass-panel {
+  background: rgba(13, 22, 40, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-card {
+  background: linear-gradient(135deg, rgba(17, 29, 53, 0.8) 0%, rgba(10, 18, 34, 0.9) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 6px 24px rgba(6, 182, 212, 0.15);
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a1120;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0284c7;
+}
