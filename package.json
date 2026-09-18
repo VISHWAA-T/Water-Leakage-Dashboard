@@ -1,0 +1,11 @@
+{
+  "name": "aquaguard-ai",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "dev": "node server/server.js"
+  }
+}
